@@ -10,7 +10,7 @@ HVL_params.y1 = 3.80648e-06; % Погонная проводимость пря�
 
 % Параметры расчета
 calc_settings.need_load_PMU_from_csv = true; % Необходимо загружать данные из csv или есть данные в MAT-файле
-calc_settings.alg_num = 13; % Для какого алгоритма строим временные зависимости?
+calc_settings.alg_num = 18; % Для какого алгоритма строим временные зависимости?
 calc_settings.alg_count = 18; % Количество исследуемых алгоритмов ОМП
 calc_settings.calc_period_num = 3; % Через сколько периодов выбираем комплект СВИ для расчета?
 
@@ -25,8 +25,8 @@ calc_settings.load.finish_value = 1;
 calc_settings.load.step_change = 0.2;
 
 % Местоположение КЗ (в процентах от длины линии)
-calc_settings.sc_position.start_value = 0;
-calc_settings.sc_position.finish_value = 1;
+calc_settings.sc_position.start_value = 0.5;
+calc_settings.sc_position.finish_value = 0.5;
 calc_settings.sc_position.step_change = 0.01;
 
 % Фаза КЗ (в градусах)
@@ -66,7 +66,7 @@ sc_settings.faulted_phase = 1; % Поврежденная фаза (1 - А, 2 - 
 
 % Моменты возникновения КЗ для каждого их экспериментов
 sc_settings.fault_inception_moment.load = [2095 2131 2164 2177 2184 2188];
-sc_settings.fault_inception_moment.sc_position = 2188;
+sc_settings.fault_inception_moment.sc_position = 2008;
 sc_settings.fault_inception_moment.sc_phase = 2188;
 sc_settings.fault_inception_moment.ef_mutual_angle = [2188 2187 2347 2363 2360 2353 2350 2345 2340 2334];
 sc_settings.fault_inception_moment.trans_resistance = 2188;

@@ -1,6 +1,6 @@
 clear
 %% Загрузка исходных данных и настроек
-run('settings');
+run('settings1');
 
 %% Расчет недостающих данных
 % Параметры ВЛ
@@ -345,7 +345,7 @@ function create_errors_graphs_time_zone(...
                 results_path = fullfile(graph_directory, graph_file_name);
                 saveas(gcf, results_path, 'png' );
                 saveas(gcf, results_path, 'fig' );
-                saveas(gcf, results_path, 'emf' );
+%                 saveas(gcf, results_path, 'emf' );
             end
             
             close(fig);
@@ -395,7 +395,7 @@ function create_errors_graphs_time_zone(...
             results_path = fullfile(graph_directory, graph_file_name);
             saveas(gcf, results_path, 'png' );
             saveas(gcf, results_path, 'fig' );
-            saveas(gcf, results_path, 'emf' );
+%             saveas(gcf, results_path, 'emf' );
         end
         
         close(fig)
