@@ -13,6 +13,7 @@ calc_settings.need_load_PMU_from_csv = true; % Необходимо загруж
 calc_settings.alg_num = 18; % Для какого алгоритма строим временные зависимости?
 calc_settings.alg_count = 18; % Количество исследуемых алгоритмов ОМП
 calc_settings.calc_period_num = 3; % Через сколько периодов выбираем комплект СВИ для расчета?
+calc_factors_ranges = true; % Необходим ли расчет диапазонов для факторов
 
 % Варьируемые факторы
 % calc_settings.factors = ["load" "sc_position" "sc_phase" "ef_mutual_angle" ...
@@ -23,21 +24,29 @@ calc_settings.factors = ["sc_position"];
 calc_settings.load.start_value = 0;
 calc_settings.load.finish_value = 1;
 calc_settings.load.step_change = 0.2;
+calc_settings.load.range = [];
+calc_settings.load.exp_num = 0;
 
 % Местоположение КЗ (в процентах от длины линии)
 calc_settings.sc_position.start_value = 0.5;
 calc_settings.sc_position.finish_value = 0.5;
 calc_settings.sc_position.step_change = 0.01;
+calc_settings.sc_position.range = [];
+calc_settings.sc_position.exp_num = 0;
 
 % Фаза КЗ (в градусах)
 calc_settings.sc_phase.start_value = 0;
 calc_settings.sc_phase.finish_value = 350;
 calc_settings.sc_phase.step_change = 10;
+calc_settings.sc_phase.range = [];
+calc_settings.sc_phase.exp_num = 0;
 
 % Взаимный угол ЭДС (в градусах)
 calc_settings.ef_mutual_angle.start_value = -20;
 calc_settings.ef_mutual_angle.finish_value = 70;
 calc_settings.ef_mutual_angle.step_change = 10;
+calc_settings.ef_mutual_angle.range = [];
+calc_settings.ef_mutual_angle.exp_num = 0;
 
 % Переходное сопротивление (в Ом)
 calc_settings.trans_resistance.start_value_int1 = 0;
@@ -49,16 +58,22 @@ calc_settings.trans_resistance.step_change_int2 = 1;
 calc_settings.trans_resistance.start_value_int3 = 20;
 calc_settings.trans_resistance.finish_value_int3 = 50;
 calc_settings.trans_resistance.step_change_int3 = 10;
+calc_settings.trans_resistance.range = [];
+calc_settings.trans_resistance.exp_num = 0;
 
 % Отношение сопротивления ПП системы справа к системе слева
 calc_settings.positive_seq.start_value = 0.1;
 calc_settings.positive_seq.finish_value = 2;
 calc_settings.positive_seq.step_change = 0.1;
+calc_settings.positive_seq.range = [];
+calc_settings.positive_seq.exp_num = 0;
 
 % Отношение сопротивления НП системы справа к системе слева
 calc_settings.zero_seq.start_value = 0.1;
 calc_settings.zero_seq.finish_value = 4.0;
 calc_settings.zero_seq.step_change = 0.1;
+calc_settings.zero_seq.range = [];
+calc_settings.zero_seq.exp_num = 0;
 
 % Параметры КЗ
 sc_settings.position_init = 110; % Местоположение КЗ
