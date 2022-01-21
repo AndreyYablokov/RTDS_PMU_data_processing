@@ -1,6 +1,6 @@
 clear
 %% Загрузка исходных данных и настроек
-run('settings_ENMU_ENIP_PMU');
+run('settings_RTDS_runtime_PMU_REPEE');
 
 %% Расчет недостающих данных
 % Параметры ВЛ
@@ -464,6 +464,8 @@ function [delta_percent] = calc_algs_error_time_zone(...
     
     PMU_set_count = size(Ibeg.phase_A, 1);
     delta_percent = zeros(exp_count, PMU_set_count);
+    
+    sc_position = sc_settings.position_init;
 
     for idx_exp = 1:exp_count 
         for PMU_set = 1:PMU_set_count         

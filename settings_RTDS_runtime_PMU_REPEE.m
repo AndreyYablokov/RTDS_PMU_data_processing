@@ -13,12 +13,12 @@ calc_settings.need_load_PMU_from_csv = true; % Необходимо загруж
 calc_settings.alg_num = 13; % Для какого алгоритма строим временные зависимости?
 calc_settings.alg_count = 18; % Количество исследуемых алгоритмов ОМП
 calc_settings.calc_period_num = 3; % Через сколько периодов выбираем комплект СВИ для расчета?
-calc_factors_ranges = true; % Необходим ли расчет диапазонов для факторов
+calc_settings.need_factors_ranges = true; % Необходим ли расчет диапазонов для факторов
 
 % Варьируемые факторы
 % calc_settings.factors = ["load" "sc_position" "sc_phase" "ef_mutual_angle" ...
 %     "trans_resistance" "positive_seq" "zero_seq"];
-calc_settings.factors = ["sc_position"];
+calc_settings.factors = ["ef_mutual_angle"];
 
 % Нагрузка (в процентах от номинальной)
 calc_settings.load.start_value = 0;
@@ -36,14 +36,14 @@ calc_settings.sc_position.exp_num = 0;
 
 % Фаза КЗ (в градусах)
 calc_settings.sc_phase.start_value = 0;
-calc_settings.sc_phase.finish_value = 350;
+calc_settings.sc_phase.finish_value = 360;
 calc_settings.sc_phase.step_change = 10;
 calc_settings.sc_phase.range = [];
 calc_settings.sc_phase.exp_num = 0;
 
 % Взаимный угол ЭДС (в градусах)
 calc_settings.ef_mutual_angle.start_value = -20;
-calc_settings.ef_mutual_angle.finish_value = 70;
+calc_settings.ef_mutual_angle.finish_value = 90;
 calc_settings.ef_mutual_angle.step_change = 10;
 calc_settings.ef_mutual_angle.range = [];
 calc_settings.ef_mutual_angle.exp_num = 0;
@@ -80,13 +80,13 @@ sc_settings.position_init = 110; % Местоположение КЗ
 sc_settings.faulted_phase = 1; % Поврежденная фаза (1 - А, 2 - В,3 - С)
 
 % Моменты возникновения КЗ для каждого их экспериментов
-sc_settings.fault_inception_moment.load = [2095 2131 2164 2177 2184 2188];
-sc_settings.fault_inception_moment.sc_position = 2188;
-sc_settings.fault_inception_moment.sc_phase = 2188;
-sc_settings.fault_inception_moment.ef_mutual_angle = [2188 2187 2347 2363 2360 2353 2350 2345 2340 2334];
-sc_settings.fault_inception_moment.trans_resistance = 2188;
-sc_settings.fault_inception_moment.positive_seq = 2188;
-sc_settings.fault_inception_moment.zero_seq = 2188;
+sc_settings.fault_inception_moment.load = [1007 1007 1007 1007 1007 1007];
+sc_settings.fault_inception_moment.sc_position = 1007;
+sc_settings.fault_inception_moment.sc_phase = 1007;
+sc_settings.fault_inception_moment.ef_mutual_angle = [1007 1007 1007 1007 1007 1007 1007 1007 1007 1007 1007 1007];
+sc_settings.fault_inception_moment.trans_resistance = 1007;
+sc_settings.fault_inception_moment.positive_seq = 1007;
+sc_settings.fault_inception_moment.zero_seq = 1007;
 
 % Настройки данных PMU
 PMU_settings.need_change_direction_Iend = false;
@@ -117,6 +117,8 @@ PMU_settings.Uend.phase_B.amp = 29;
 PMU_settings.Uend.phase_B.angle = 28;
 PMU_settings.Uend.phase_C.amp = 31;
 PMU_settings.Uend.phase_C.angle = 30;
+
+PMU_settings.is_not_runtime_PMU = false; % Если данные не из runtime RTDS, то должно быть true
 
 % Настройки сохранения графиков
 graphs_settings.need_save = 1; % Логический флаг сохранения графиков (1 - да, 0 - нет)
