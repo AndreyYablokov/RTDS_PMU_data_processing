@@ -3,5 +3,6 @@ graphs/*.emf
 graphs/*.fig
 PMU_data_CSV/*.csv
 PMU_data_MAT/*.mat
+SV_data_CSV/*.csv
 results/*.mat
 **.asv
