@@ -1,6 +1,6 @@
 clear
 %% Загрузка исходных данных и настроек
-run('settings_RTDS_internal_PMU_REPEE');
+run('settings_ENMU_ENIP_PMU');
 
 %% Расчет недостающих данных
 % Параметры ВЛ
@@ -8,8 +8,7 @@ HVL_params.z0 = HVL_params.r0 + HVL_params.x0 * 1i; % Погонное полн�
 HVL_params.z1 = HVL_params.r1 + HVL_params.x1 * 1i; % Погонное полное сопротивление прямой последовательности ВЛ
 
 % Параметры расчета
-
-if calc_factors_ranges == true
+if calc_settings.need_factors_ranges == true
     
     % Нагрузка
     calc_settings.load.exp_num = round((calc_settings.load.finish_value - ...
@@ -77,8 +76,14 @@ for factor = calc_settings.factors
 
     %% Загрузка данных УСВИ
     if calc_settings.need_load_PMU_from_csv == true
-        PMU_data_matrix = load_PMU_data_from_csv(...
-            directories_settings, factor, calc_settings);
+        if PMU_settings.is_not_runtime_PMU == true
+            PMU_data_matrix = load_PMU_data_from_csv(...
+                directories_settings, factor, calc_settings, ...
+                PMU_settings, SV_settings, sc_settings);
+        else     
+            PMU_data_matrix = load_RTDS_runtime_PMU_data_from_csv(...
+                directories_settings, factor, calc_settings);
+        end
     else
         init_data_file_name = strcat('PMU_data_matrix_',factor);
         init_data_path = fullfile(directories_settings.PMU_data_MAT, init_data_file_name);
@@ -139,8 +144,8 @@ clear;
 
 %% Функции
 
-% Функция загрузки данных из CSV
-function PMU_data_matrix = load_PMU_data_from_csv(directories_settings, factor, calc_settings)
+% Функция загрузки данных runtime УСВИ RTDS из CSV
+function PMU_data_matrix = load_RTDS_runtime_PMU_data_from_csv(directories_settings, factor, calc_settings)
     exp_count = getfield(calc_settings,factor).exp_num;
     
     for idx = 1:exp_count
@@ -154,6 +159,203 @@ function PMU_data_matrix = load_PMU_data_from_csv(directories_settings, factor, 
     results_file_name = strcat("PMU_data_matrix_",factor, ".mat");
     results_path = fullfile(directories_settings.PMU_data_MAT, results_file_name);
     save(results_path, 'PMU_data_matrix');
+
+end
+
+% Функция загрузки данных УСВИ из CSV
+function PMU_data_matrix = load_PMU_data_from_csv(...
+    directories_settings, factor, calc_settings, PMU_settings, SV_settings, sc_settings)
+
+    file_name = strcat("PMU_data_beg_line_", factor, ".csv");
+    file_path = fullfile(directories_settings.PMU_data_CSV, file_name);
+    names = getfield(PMU_settings.names,PMU_settings.PMU_data_beg_line);
+    PMU_data_beg_line = convert_csv_to_timetable(file_path,names);
+    
+    file_name = strcat("PMU_data_end_line_", factor, ".csv");
+    file_path = fullfile(directories_settings.PMU_data_CSV, file_name);
+    names = getfield(PMU_settings.names,PMU_settings.PMU_data_end_line);
+    PMU_data_end_line = convert_csv_to_timetable(file_path,names);   
+
+    file_name = strcat("SV_beg_line_", factor, ".csv");
+    file_path = fullfile(directories_settings.SV_data_CSV, file_name);
+    names = SV_settings.names.SV_beg_line;
+    SV_beg_line = convert_csv_to_timetable(file_path,names);
+    SV_beg_line = parse_SV_256(SV_beg_line,names);
+    
+    file_name = strcat("SV_end_line_", factor, ".csv");
+    file_path = fullfile(directories_settings.SV_data_CSV, file_name);
+    names = SV_settings.names.SV_end_line;
+    SV_end_line = convert_csv_to_timetable(file_path,names);
+    SV_end_line = parse_SV_256(SV_end_line,names);
+
+    plot(...
+        PMU_data_beg_line.Timestamp,PMU_data_beg_line.IphsAmag,...
+        PMU_data_end_line.Timestamp,PMU_data_end_line.IphsAmag,...
+        SV_beg_line.Timestamp-SV_settings.delta_time,SV_beg_line.IphsA,...
+        SV_end_line.Timestamp-SV_settings.delta_time,SV_end_line.IphsA);
+    
+    PMU_data_matrix = identify_short_circuit(...
+        SV_beg_line, SV_end_line, PMU_data_beg_line, PMU_data_end_line, ...
+        calc_settings, SV_settings, PMU_settings, sc_settings); 
+    
+%     for idx = 1:exp_count
+%         file_name = strcat("PMU_data_", factor, "_exp", num2str(idx), ".csv");
+%         file_path = fullfile(directories_settings.PMU_data_CSV, file_name);
+%         PMU_data_cells{idx} = csvread(file_path,1,0);
+%     end
+%     
+%     PMU_data_matrix = cell2mat(PMU_data_cells);
+    
+    results_file_name = strcat("PMU_data_matrix_",factor, ".mat");
+    results_path = fullfile(directories_settings.PMU_data_MAT, results_file_name);
+    save(results_path, 'PMU_data_matrix');
+
+end
+
+% Функция чтения csv и записи его данных в timetable
+function table = convert_csv_to_timetable(file_path, names)
+    opts = detectImportOptions(file_path, 'Delimiter', ',');
+    table = readtimetable(file_path, opts);
+    table.Properties.DimensionNames{1} = 'Timestamp';
+    for idx=1:length(names)
+        table.Properties.VariableNames{idx} = names{1,idx};
+    end
+end
+
+% Функция разбора данных для SV с 256 выборками за период пром. частоты
+function OutTable = parse_SV_256(InTable,names)
+    multiplier_current = 0.001;
+    multiplier_voltage = 0.01;
+    T = '00:00.000078125';
+    infmt = 'mm:ss.SSSSSSSSS';
+    dt = duration(T,'InputFormat',infmt);
+    values = zeros(length(InTable.Timestamp)*8,8);
+    time = NaT(length(InTable.Timestamp)*8,1);
+    for idx_packet=1:8
+        time(idx_packet:8:end) = InTable.Timestamp  - dt * (8 - idx_packet);
+        for idx_value=1:4
+            values(idx_packet:8:end,idx_value) = InTable(:,idx_value+8*(idx_packet-1)).Variables*multiplier_current;
+        end
+        for idx_value=5:8
+            values(idx_packet:8:end,idx_value) = InTable(:,idx_value+8*(idx_packet-1)).Variables*multiplier_voltage;
+        end
+    end
+    OutTable = timetable(values(:,1),values(:,2),values(:,3),values(:,4),values(:,5),values(:,6),values(:,7),values(:,8),'RowTimes',time);
+    OutTable.Properties.DimensionNames{1} = 'Timestamp';
+    for idx=1:length(names)
+        OutTable.Properties.VariableNames{idx} = names{1,idx};
+    end
+end
+
+% Функция определения КЗ на осциллограмме
+function PMU_data_matrix = identify_short_circuit(...
+    SV_beg_line, SV_end_line, PMU_data_beg_line, PMU_data_end_line, ...
+    calc_settings, SV_settings, PMU_settings, sc_settings)
+
+%     idx_current_beg=find(abs(SV_beg_line(:,1).Variables)>=calc_settings.threshold_val,1,'first');
+%     while idx_current_beg > 2
+%         if (SV_beg_line(idx_current_beg,1).Variables >= 0 && ...
+%                 SV_beg_line(idx_current_beg-1,1).Variables <= 0) ...
+%                 || (SV_beg_line(idx_current_beg,1).Variables <= 0 ...
+%                 && SV_beg_line(idx_current_beg-1,1).Variables >= 0)
+%             current_beg_time = SV_beg_line.Timestamp(idx_current_beg) - ...
+%                 SV_settings.delta_time;
+%             break;
+%         end 
+%         idx_current_beg = idx_current_beg - 1;
+%     end
+
+%     sc_beg_time = current_beg_time + sc_settings.prefault_duration;
+%     sc_end_time = sc_beg_time + sc_settings.fault_duration;
+% 
+%     idx_sc_beg=find(PMU_data_beg_line.Timestamp>=(sc_beg_time - PMU_settings.PMU_shift_beg_line),1,'first');
+%     idx_sc_end=find(PMU_data_beg_line.Timestamp>=(sc_end_time - PMU_settings.PMU_shift_end_line),1,'first');
+
+    sc_num = 0;
+    idx_current_beg = find(PMU_data_beg_line.IphsAmag>=calc_settings.threshold_val,1,'first');
+    while (idx_current_beg)
+        sc_num = sc_num + 1;
+        while idx_current_beg > 1
+            if (PMU_data_beg_line.IphsAmag(idx_current_beg,1) >= 0 && ...
+                    PMU_data_beg_line.IphsAmag(idx_current_beg-1,1) <= 0) ...
+                    || (PMU_data_beg_line.IphsAmag(idx_current_beg,1) <= 0 ...
+                    && PMU_data_beg_line.IphsAmag(idx_current_beg-1,1) >= 0)
+                current_beg_time = PMU_data_beg_line.Timestamp(idx_current_beg);
+                break;
+            end 
+            idx_current_beg = idx_current_beg - 1;
+        end
+
+        sc_beg_time = current_beg_time + sc_settings.prefault_duration;
+        sc_end_time = sc_beg_time + sc_settings.fault_duration;
+
+        idx_sc_beg_PMU_data_beg_line=find(...
+            PMU_data_beg_line.Timestamp>=(sc_beg_time+PMU_settings.PMU_shift_beg_line),1,'first');
+        idx_sc_end_PMU_data_beg_line=find(...
+            PMU_data_beg_line.Timestamp>=(sc_end_time+PMU_settings.PMU_shift_beg_line),1,'first');
+
+        idx_sc_beg_PMU_data_end_line=find(...
+            PMU_data_end_line.Timestamp>=(sc_beg_time+PMU_settings.PMU_shift_beg_line),1,'first');
+        idx_sc_end_PMU_data_end_line=find(...
+            PMU_data_end_line.Timestamp>=(sc_end_time+PMU_settings.PMU_shift_beg_line),1,'first');
+
+        PMU_data_matrix(:,1+(sc_num-1)*24) = ...
+            PMU_data_beg_line.IphsAmag(idx_sc_beg_PMU_data_beg_line:idx_sc_end_PMU_data_beg_line,1);
+        PMU_data_matrix(:,2+(sc_num-1)*24) = ...
+            PMU_data_beg_line.IphsAan(idx_sc_beg_PMU_data_beg_line:idx_sc_end_PMU_data_beg_line,1);
+        PMU_data_matrix(:,3+(sc_num-1)*24) = ...
+            PMU_data_beg_line.IphsBmag(idx_sc_beg_PMU_data_beg_line:idx_sc_end_PMU_data_beg_line,1);
+        PMU_data_matrix(:,4+(sc_num-1)*24) = ...
+            PMU_data_beg_line.IphsBan(idx_sc_beg_PMU_data_beg_line:idx_sc_end_PMU_data_beg_line,1);
+        PMU_data_matrix(:,5+(sc_num-1)*24) = ...
+            PMU_data_beg_line.IphsCmag(idx_sc_beg_PMU_data_beg_line:idx_sc_end_PMU_data_beg_line,1);
+        PMU_data_matrix(:,6+(sc_num-1)*24) = ...
+            PMU_data_beg_line.IphsCan(idx_sc_beg_PMU_data_beg_line:idx_sc_end_PMU_data_beg_line,1);
+
+        PMU_data_matrix(:,7+(sc_num-1)*24) = ...
+            PMU_data_end_line.IphsAmag(idx_sc_beg_PMU_data_end_line:idx_sc_end_PMU_data_end_line,1);
+        PMU_data_matrix(:,8+(sc_num-1)*24) = ...
+            PMU_data_end_line.IphsAan(idx_sc_beg_PMU_data_end_line:idx_sc_end_PMU_data_end_line,1);
+        PMU_data_matrix(:,9+(sc_num-1)*24) = ...
+            PMU_data_end_line.IphsBmag(idx_sc_beg_PMU_data_end_line:idx_sc_end_PMU_data_end_line,1);
+        PMU_data_matrix(:,10+(sc_num-1)*24) = ...
+            PMU_data_end_line.IphsBan(idx_sc_beg_PMU_data_end_line:idx_sc_end_PMU_data_end_line,1);
+        PMU_data_matrix(:,11+(sc_num-1)*24) = ...
+            PMU_data_end_line.IphsCmag(idx_sc_beg_PMU_data_end_line:idx_sc_end_PMU_data_end_line,1);
+        PMU_data_matrix(:,12+(sc_num-1)*24) = ...
+            PMU_data_end_line.IphsCan(idx_sc_beg_PMU_data_end_line:idx_sc_end_PMU_data_end_line,1);
+
+        PMU_data_matrix(:,13+(sc_num-1)*24) = ...
+            PMU_data_beg_line.VphsAmag(idx_sc_beg_PMU_data_beg_line:idx_sc_end_PMU_data_beg_line,1);
+        PMU_data_matrix(:,14+(sc_num-1)*24) = ...
+            PMU_data_beg_line.VphsAan(idx_sc_beg_PMU_data_beg_line:idx_sc_end_PMU_data_beg_line,1);
+        PMU_data_matrix(:,15+(sc_num-1)*24) = ...
+            PMU_data_beg_line.VphsBmag(idx_sc_beg_PMU_data_beg_line:idx_sc_end_PMU_data_beg_line,1);
+        PMU_data_matrix(:,16+(sc_num-1)*24) = ...
+            PMU_data_beg_line.VphsBan(idx_sc_beg_PMU_data_beg_line:idx_sc_end_PMU_data_beg_line,1);
+        PMU_data_matrix(:,17+(sc_num-1)*24) = ...
+            PMU_data_beg_line.VphsCmag(idx_sc_beg_PMU_data_beg_line:idx_sc_end_PMU_data_beg_line,1);
+        PMU_data_matrix(:,18+(sc_num-1)*24) = ...
+            PMU_data_beg_line.VphsCan(idx_sc_beg_PMU_data_beg_line:idx_sc_end_PMU_data_beg_line,1);
+
+        PMU_data_matrix(:,19+(sc_num-1)*24) = ...
+            PMU_data_end_line.VphsAmag(idx_sc_beg_PMU_data_end_line:idx_sc_end_PMU_data_end_line,1);
+        PMU_data_matrix(:,20+(sc_num-1)*24) = ...
+            PMU_data_end_line.VphsAan(idx_sc_beg_PMU_data_end_line:idx_sc_end_PMU_data_end_line,1);
+        PMU_data_matrix(:,21+(sc_num-1)*24) = ...
+            PMU_data_end_line.VphsBmag(idx_sc_beg_PMU_data_end_line:idx_sc_end_PMU_data_end_line,1);
+        PMU_data_matrix(:,22+(sc_num-1)*24) = ...
+            PMU_data_end_line.VphsBan(idx_sc_beg_PMU_data_end_line:idx_sc_end_PMU_data_end_line,1);
+        PMU_data_matrix(:,23+(sc_num-1)*24) = ...
+            PMU_data_end_line.VphsCmag(idx_sc_beg_PMU_data_end_line:idx_sc_end_PMU_data_end_line,1);
+        PMU_data_matrix(:,24+(sc_num-1)*24) = ...
+            PMU_data_end_line.VphsCan(idx_sc_beg_PMU_data_end_line:idx_sc_end_PMU_data_end_line,1);
+
+        idx_current_beg=find(PMU_data_beg_line.IphsAmag(idx_current_beg+...
+            calc_settings.vectors_between_sc:end,1)>=...
+            calc_settings.threshold_val,1,'first') + ...
+            idx_current_beg+calc_settings.vectors_between_sc;
+    end
 
 end
 
@@ -258,13 +460,13 @@ function [delta_percent] = calc_algs_error_time_zone(...
     Ibeg, Iend, Ubeg, Uend, factor, HVL_params, ...
     calc_settings, sc_settings, directories_settings)
 
-    sc_position = sc_settings.position_init;
     exp_count = getfield(calc_settings,factor).exp_num;
     
-    delta_percent = zeros(exp_count, 20000);
+    PMU_set_count = size(Ibeg.phase_A, 1);
+    delta_percent = zeros(exp_count, PMU_set_count);
 
     for idx_exp = 1:exp_count 
-        for PMU_set = 1:20000         
+        for PMU_set = 1:PMU_set_count         
             % Формирование наборов PMU с трехфазными измерениями
             Ibeg_PMU_set = [
                 Ibeg.phase_A(PMU_set,idx_exp); ...
@@ -288,10 +490,6 @@ function [delta_percent] = calc_algs_error_time_zone(...
 
             % Вычисления
             if factor == "sc_position"
-                sc_position = HVL_params.length * ...
-                    (calc_settings.sc_position.start_value + ...
-                    calc_settings.sc_position.step_change * ...
-                    (idx_exp - 1));
                 sc_position = HVL_params.length * ...
                     calc_settings.sc_position.range(idx_exp);
             end
