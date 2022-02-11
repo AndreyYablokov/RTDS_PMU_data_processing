@@ -10,7 +10,7 @@ HVL_params.y1 = 3.80648e-06; % Погонная проводимость пря�
 
 % Параметры расчета
 calc_settings.need_load_PMU_from_csv = true; % Необходимо загружать данные из csv или есть данные в MAT-файле
-calc_settings.alg_num = 13; % Для какого алгоритма строим временные зависимости?
+calc_settings.alg_num = 17; % Для какого алгоритма строим временные зависимости?
 calc_settings.alg_count = 18; % Количество исследуемых алгоритмов ОМП
 calc_settings.calc_period_num = 3; % Через сколько периодов выбираем комплект СВИ для расчета?
 calc_settings.need_factors_ranges = true; % Необходим ли расчет диапазонов для факторов
@@ -18,7 +18,7 @@ calc_settings.need_factors_ranges = true; % Необходим ли расчет
 % Варьируемые факторы
 % calc_settings.factors = ["load" "sc_position" "sc_phase" "ef_mutual_angle" ...
 %     "trans_resistance" "positive_seq" "zero_seq" "Monte_Carlo"];
-calc_settings.factors = ["ef_mutual_angle"];
+calc_settings.factors = ["sc_position"];
 
 % Нагрузка (в процентах от номинальной)
 calc_settings.load.start_value = 0;
@@ -84,19 +84,19 @@ sc_settings.position_init = 110; % Местоположение КЗ
 sc_settings.faulted_phase = 1; % Поврежденная фаза (1 - А, 2 - В,3 - С)
 
 % Моменты возникновения КЗ для каждого их экспериментов
-sc_settings.fault_inception_moment.load = [1007 1007 1007 1007 1007 1007];
-sc_settings.fault_inception_moment.sc_position = 1007;
-sc_settings.fault_inception_moment.sc_phase = 1007;
-sc_settings.fault_inception_moment.ef_mutual_angle = [1007 1007 1007 1007 1007 1007 1007 1007 1007 1007 1007 1007];
-sc_settings.fault_inception_moment.trans_resistance = 1007;
-sc_settings.fault_inception_moment.positive_seq = 1007;
-sc_settings.fault_inception_moment.zero_seq = 1007;
-sc_settings.fault_inception_moment.Monte_Carlo = 1007;
+sc_settings.fault_inception_moment.load = [1000 1000 1000 1000 1000 1000];
+sc_settings.fault_inception_moment.sc_position = 1000;
+sc_settings.fault_inception_moment.sc_phase = 1000;
+sc_settings.fault_inception_moment.ef_mutual_angle = [1000 1000 1000 1000 1000 1000 1000 1000 1000 1000 1000 1000];
+sc_settings.fault_inception_moment.trans_resistance = 1000;
+sc_settings.fault_inception_moment.positive_seq = 1000;
+sc_settings.fault_inception_moment.zero_seq = 1000;
+sc_settings.fault_inception_moment.Monte_Carlo = 1000;
 
 % Настройки данных PMU
-PMU_settings.need_change_direction_Iend = false;
+PMU_settings.need_change_direction_Iend = true;
 PMU_settings.angle_in_degrees = false;
-PMU_settings.RC_data = false;
+PMU_settings.RC_data = true;
 PMU_settings.column_count = 31;
 PMU_settings.period = 400;
 PMU_settings.Ibeg.phase_A.amp = 3;

@@ -1,6 +1,6 @@
 clear
 %% Загрузка исходных данных и настроек
-run('settings_RTDS_runtime_PMU_REPEE');
+run('settings_RTDS_runtime_PMU_RC');
 
 %% Расчет недостающих данных
 % Параметры ВЛ
@@ -116,8 +116,8 @@ for factor = calc_settings.factors
     
     %% Вычисление погрешностей алгоритмов для конкретного комплекта PMU
     delta_percent = calc_algs_error_one_set_PMU(...
-    Ibeg, Iend, Ubeg, Uend, factor, PMU_settings.period, HVL_params, ...
-    calc_settings, sc_settings, directories_settings);
+        Ibeg, Iend, Ubeg, Uend, factor, PMU_settings.period, HVL_params, ...
+        calc_settings, sc_settings, directories_settings);
 
     %% Построение зависимостей погрешностей для конкретного комплекта PMU
     create_errors_graphs_one_set_PMU(...
@@ -126,12 +126,9 @@ for factor = calc_settings.factors
     clear delta_percent;
     
     if factor == "sc_phase"
-        delta_percent = Monte_Carlo_data_processing(...
+        delta_percent = Monte_Carlo_line_params_variation(...
             Ibeg, Iend, Ubeg, Uend, factor, PMU_settings.period, HVL_params, ...
             calc_settings, sc_settings, directories_settings);
-        
-        create_errors_graphs_Monte_Carlo(...
-            delta_percent, graphs_settings)
     end
     
     %% Освобождение памяти от лишних переменных
@@ -362,50 +359,67 @@ end
 % Функция выделения токов и напряжений из матрицы данных PMU
 function [Ibeg, Iend, Ubeg, Uend] = get_IU_from_PMU(PMU, factor, PMU_settings, calc_settings)
 
+    sign_Iend = 1;
     if PMU_settings.need_change_direction_Iend == true
         sign_Iend = -1;
-    else
-        sign_Iend = 1;
     end
     
+    angle_coeff = 1;
     if PMU_settings.angle_in_degrees == true
         angle_coeff = pi/180;
-    else
-        angle_coeff = 1;
+    end
+    
+    RC_angle_coef = 0;
+    RC_rms_coef = 1;
+    if PMU_settings.RC_data == true
+        RC_angle_coef = -pi/2;
+        RC_rms_coef = 1000/(2 * pi * 50);
     end
 
     exp_count = getfield(calc_settings,factor).exp_num;   
 
     for idx_exp = 1:exp_count
-        Ibeg.phase_A(:,idx_exp) = PMU(:,PMU_settings.Ibeg.phase_A.amp + ...
+        Ibeg.phase_A(:,idx_exp) = RC_rms_coef * ...
+            PMU(:,PMU_settings.Ibeg.phase_A.amp + ...
             ((idx_exp-1)*PMU_settings.column_count)).*...
             exp(1j*angle_coeff*(PMU(:,PMU_settings.Ibeg.phase_A.angle + ...
-            ((idx_exp-1)*PMU_settings.column_count))));
+            ((idx_exp-1)*PMU_settings.column_count)))) * ...
+            exp(1j*RC_angle_coef);
         
-        Ibeg.phase_B(:,idx_exp) = PMU(:,PMU_settings.Ibeg.phase_B.amp + ...
+        Ibeg.phase_B(:,idx_exp) = RC_rms_coef * ...
+            PMU(:,PMU_settings.Ibeg.phase_B.amp + ...
             ((idx_exp-1)*PMU_settings.column_count)).*...
             exp(1j*angle_coeff*(PMU(:,PMU_settings.Ibeg.phase_B.angle + ...
-            ((idx_exp-1)*PMU_settings.column_count))));
+            ((idx_exp-1)*PMU_settings.column_count)))) * ...
+            exp(1j*RC_angle_coef);
         
-        Ibeg.phase_C(:,idx_exp) = PMU(:,PMU_settings.Ibeg.phase_C.amp + ...
+        Ibeg.phase_C(:,idx_exp) = RC_rms_coef * ...
+            PMU(:,PMU_settings.Ibeg.phase_C.amp + ...
             ((idx_exp-1)*PMU_settings.column_count)).*...
             exp(1j*angle_coeff*(PMU(:,PMU_settings.Ibeg.phase_C.angle + ...
-            ((idx_exp-1)*PMU_settings.column_count))));
+            ((idx_exp-1)*PMU_settings.column_count)))) * ...
+            exp(1j*RC_angle_coef);
 
-        Iend.phase_A(:,idx_exp) = sign_Iend  *PMU(:,PMU_settings.Iend.phase_A.amp + ...
+        Iend.phase_A(:,idx_exp) = RC_rms_coef * sign_Iend * ...
+            PMU(:,PMU_settings.Iend.phase_A.amp + ...
             ((idx_exp-1)*PMU_settings.column_count)).*...
             exp(1j*angle_coeff*(PMU(:,PMU_settings.Iend.phase_A.angle + ...
-            ((idx_exp-1)*PMU_settings.column_count))));
+            ((idx_exp-1)*PMU_settings.column_count)))) * ...
+            exp(1j*RC_angle_coef);
         
-        Iend.phase_B(:,idx_exp) = sign_Iend * PMU(:,PMU_settings.Iend.phase_B.amp + ...
+        Iend.phase_B(:,idx_exp) = RC_rms_coef * sign_Iend * ...
+            PMU(:,PMU_settings.Iend.phase_B.amp + ...
             ((idx_exp-1)*PMU_settings.column_count)).*...
             exp(1j*angle_coeff*(PMU(:,PMU_settings.Iend.phase_B.angle + ...
-            ((idx_exp-1)*PMU_settings.column_count))));
+            ((idx_exp-1)*PMU_settings.column_count)))) * ...
+            exp(1j*RC_angle_coef);
         
-        Iend.phase_C(:,idx_exp) = sign_Iend * PMU(:,PMU_settings.Iend.phase_C.amp + ...
+        Iend.phase_C(:,idx_exp) = RC_rms_coef * sign_Iend * ...
+            PMU(:,PMU_settings.Iend.phase_C.amp + ...
             ((idx_exp-1)*PMU_settings.column_count)).*...
             exp(1j*angle_coeff*(PMU(:,PMU_settings.Iend.phase_C.angle + ...
-            ((idx_exp-1)*PMU_settings.column_count))));
+            ((idx_exp-1)*PMU_settings.column_count)))) * ...
+            exp(1j*RC_angle_coef);
       
         Ubeg.phase_A(:,idx_exp) = PMU(:,PMU_settings.Ubeg.phase_A.amp + ...
             ((idx_exp-1)*PMU_settings.column_count)).*...
@@ -436,6 +450,7 @@ function [Ibeg, Iend, Ubeg, Uend] = get_IU_from_PMU(PMU, factor, PMU_settings, c
             ((idx_exp-1)*PMU_settings.column_count)).*...
             exp(1j*angle_coeff*(PMU(:,PMU_settings.Uend.phase_C.angle + ...
             ((idx_exp-1)*PMU_settings.column_count))));
+        
     end
 end
 
@@ -663,7 +678,7 @@ function [delta_percent] = calc_algs_error_one_set_PMU(...
             sc_position = HVL_params.length * ...
                 calc_settings.sc_position.range(idx_exp);
         end
-                
+        
         dist_km = ...
             FAULT_LOCATION_EXPRESSIONS_CORRECTED_NEW_2021 ...
             (Ubeg_PMU_set, Ibeg_PMU_set, Uend_PMU_set, Iend_PMU_set, ...
@@ -740,19 +755,20 @@ function create_errors_graphs_one_set_PMU(delta_percent, factor, calc_settings, 
     close(fig);
 end
 
-% Функция расчета погрешностей алгоритмов по методу Монте-Карло
-function delta_percent = Monte_Carlo_data_processing(...
+% Функция расчета погрешностей ОМП по методу Монте-Карло при вариации
+% параметров линии
+function delta_percent = Monte_Carlo_line_params_variation(...
     Ibeg, Iend, Ubeg, Uend, factor, period, HVL_params, ...
     calc_settings, sc_settings, directories_settings)
     
     sc_position = sc_settings.position_init;
     fault_inception_moment = getfield(sc_settings.fault_inception_moment,factor);
-    PMU_set = fault_inception_moment + period;
+    PMU_set = fault_inception_moment + calc_settings.calc_period_num * period;
     
     if factor ~= "load" && factor ~= "sc_phase" && factor ~= "ef_mutual_angle"
-        PMU_set = fault_inception_moment + 3*period;
+        PMU_set = fault_inception_moment + calc_settings.calc_period_num * period;
     else
-        PMU_set = fault_inception_moment(1) + 3*period;
+        PMU_set = fault_inception_moment(1) + calc_settings.calc_period_num * period;
     end
     
     idx_exp = 1;
@@ -800,51 +816,7 @@ function delta_percent = Monte_Carlo_data_processing(...
             HVL_params.length; 
     end
     
-    results_file_name = "delta_Monte_Carlo.mat";
+    results_file_name = "delta_Monte_Carlo_line_params_variation.mat";
     results_path = fullfile(directories_settings.results_data, results_file_name);
     save(results_path, 'delta_percent');
-end
-
-% Функция построения графиков погрешностей, определенных по методу
-% Монте-Карло
-function create_errors_graphs_Monte_Carlo(...
-    delta_percent, graphs_settings)
-
-    for idx_alg = graphs_settings.algs_for_plot
-        fig1 = figure;
-        probplot('normal', real(delta_percent(:, idx_alg)));
-        title(strcat(num2str(idx_alg),' алг'));
-        
-        if graphs_settings.need_save == 1
-            graph_file_name = strcat("Monte_Carlo_res_prob_alg", num2str(idx_alg));
-            results_path = fullfile(graphs_settings.result_directory, graph_file_name);
-            saveas(gcf, results_path, 'png' );
-            saveas(gcf, results_path, 'fig' );
-            saveas(gcf, results_path, 'emf' );
-        end 
-        
-        close (fig1);
-        
-        fig2 = figure;
-        histfit(real(delta_percent(:, idx_alg)));
-        hold on;
-        xline(mean(real(delta_percent(:, idx_alg))),'r');
-        hold on;
-        xline(mean(real(delta_percent(:, idx_alg))) - ...
-            3*std(real(delta_percent(:, idx_alg))),'r')
-        hold on;
-        xline(mean(real(delta_percent(:, idx_alg))) + ...
-            3*std(real(delta_percent(:, idx_alg))),'r')
-        title(strcat(num2str(idx_alg),' алг'));
-        
-        if graphs_settings.need_save == 1
-            graph_file_name = strcat("Monte_Carlo_res_hist_alg", num2str(idx_alg));
-            results_path = fullfile(graphs_settings.result_directory, graph_file_name);
-            saveas(gcf, results_path, 'png' );
-            saveas(gcf, results_path, 'fig' );
-            saveas(gcf, results_path, 'emf' );
-        end 
-        
-        close (fig2);
-    end
 end
