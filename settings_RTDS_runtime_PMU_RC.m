@@ -94,7 +94,7 @@ sc_settings.fault_inception_moment.zero_seq = 1000;
 sc_settings.fault_inception_moment.Monte_Carlo = 1000;
 
 % Настройки данных PMU
-PMU_settings.need_change_direction_Iend = true;
+PMU_settings.need_change_direction_Iend = false;
 PMU_settings.angle_in_degrees = false;
 PMU_settings.RC_data = true;
 PMU_settings.column_count = 31;
